@@ -41,8 +41,8 @@ export async function GET(
   }
 }
 
-// PATCH /api/posts/[slug] - Update a post (admin only)
-export async function PATCH(
+// PUT /api/posts/[slug] - Update a post (admin only)
+export async function PUT(
   request: NextRequest,
   { params }: { params: { slug: string } }
 ) {
@@ -72,7 +72,13 @@ export async function PATCH(
       );
     }
 
-    return NextResponse.json({ post: updated[0] });
+    // Parse tags for response
+    const responsePost = {
+      ...updated[0],
+      tags: JSON.parse(updated[0].tags || '[]'),
+    };
+
+    return NextResponse.json({ post: responsePost });
   } catch (error) {
     console.error('Error updating post:', error);
     return NextResponse.json(
@@ -80,6 +86,14 @@ export async function PATCH(
       { status: 500 }
     );
   }
+}
+
+// PATCH /api/posts/[slug] - Update a post (admin only) - alias for PUT
+export async function PATCH(
+  request: NextRequest,
+  { params }: { params: { slug: string } }
+) {
+  return PUT(request, { params });
 }
 
 // DELETE /api/posts/[slug] - Delete a post (admin only)
