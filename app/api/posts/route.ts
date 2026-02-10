@@ -1,7 +1,19 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { db, posts } from '@/lib/db';
-import { eq, desc, sql } from 'drizzle-orm';
+import { desc, sql } from 'drizzle-orm';
 import { z } from 'zod';
+
+// CORS headers
+const corsHeaders = {
+  'Access-Control-Allow-Origin': '*',
+  'Access-Control-Allow-Methods': 'GET, POST, OPTIONS',
+  'Access-Control-Allow-Headers': 'Content-Type',
+};
+
+// Handle OPTIONS request for CORS
+export async function OPTIONS() {
+  return NextResponse.json({}, { headers: corsHeaders });
+}
 
 // GET /api/posts - Get all posts
 export async function GET(request: NextRequest) {
@@ -12,37 +24,65 @@ export async function GET(request: NextRequest) {
     const limit = parseInt(searchParams.get('limit') || '100');
     const offset = parseInt(searchParams.get('offset') || '0');
 
-    let query = db.select().from(posts);
-
-    // Filter by tag if provided
+    // Build query based on conditions
+    let allPosts;
+    
     if (tag) {
-      query = query.where(sql`${posts.tags}::text ILIKE ${`%${tag}%`}`);
-    }
-
-    // Sort
-    if (sort === 'popular') {
-      query = query.orderBy(desc(posts.views));
+      // With tag filter
+      if (sort === 'popular') {
+        allPosts = await db
+          .select()
+          .from(posts)
+          .where(sql`${posts.tags}::text ILIKE ${`%${tag}%`}`)
+          .orderBy(desc(posts.views))
+          .limit(limit)
+          .offset(offset);
+      } else {
+        allPosts = await db
+          .select()
+          .from(posts)
+          .where(sql`${posts.tags}::text ILIKE ${`%${tag}%`}`)
+          .orderBy(desc(posts.publishedAt))
+          .limit(limit)
+          .offset(offset);
+      }
     } else {
-      query = query.orderBy(desc(posts.publishedAt));
+      // Without tag filter
+      if (sort === 'popular') {
+        allPosts = await db
+          .select()
+          .from(posts)
+          .orderBy(desc(posts.views))
+          .limit(limit)
+          .offset(offset);
+      } else {
+        allPosts = await db
+          .select()
+          .from(posts)
+          .orderBy(desc(posts.publishedAt))
+          .limit(limit)
+          .offset(offset);
+      }
     }
 
-    // Pagination
-    query = query.limit(limit).offset(offset);
-
-    const allPosts = await query;
-
-    // Parse tags from JSON string
+    // Parse tags from JSON string and convert types
     const parsedPosts = allPosts.map(post => ({
       ...post,
+      id: String(post.id),
       tags: JSON.parse(post.tags || '[]'),
+      publishedAt: post.publishedAt?.toISOString() || new Date().toISOString(),
+      updatedAt: post.updatedAt?.toISOString(),
     }));
 
-    return NextResponse.json({ posts: parsedPosts });
+    return NextResponse.json(
+      { posts: parsedPosts },
+      { headers: corsHeaders }
+    );
   } catch (error) {
     console.error('Error fetching posts:', error);
     return NextResponse.json(
       { error: 'Failed to fetch posts' },
-      { status: 500 }
+      { status: 500, headers: corsHeaders }
     );
   }
 }
@@ -69,18 +109,21 @@ export async function POST(request: NextRequest) {
       tags: JSON.stringify(validated.tags),
     }).returning();
 
-    return NextResponse.json({ post: newPost[0] }, { status: 201 });
+    return NextResponse.json(
+      { post: newPost[0] },
+      { status: 201, headers: corsHeaders }
+    );
   } catch (error) {
     if (error instanceof z.ZodError) {
       return NextResponse.json(
         { error: 'Invalid input', details: error.errors },
-        { status: 400 }
+        { status: 400, headers: corsHeaders }
       );
     }
     console.error('Error creating post:', error);
     return NextResponse.json(
       { error: 'Failed to create post' },
-      { status: 500 }
+      { status: 500, headers: corsHeaders }
     );
   }
 }
