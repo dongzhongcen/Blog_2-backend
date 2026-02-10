@@ -3,6 +3,18 @@ import { db, posts, comments, postLikes, commentLikes } from '@/lib/db';
 import { eq, and, sql } from 'drizzle-orm';
 import { z } from 'zod';
 
+// CORS headers
+const corsHeaders = {
+  'Access-Control-Allow-Origin': '*',
+  'Access-Control-Allow-Methods': 'GET, POST, PUT, PATCH, DELETE, OPTIONS',
+  'Access-Control-Allow-Headers': 'Content-Type, Authorization',
+};
+
+// Handle OPTIONS request for CORS
+export async function OPTIONS() {
+  return NextResponse.json({}, { headers: corsHeaders });
+}
+
 // Helper to get IP address
 function getIpAddress(request: NextRequest): string {
   const forwarded = request.headers.get('x-forwarded-for');
@@ -46,7 +58,7 @@ export async function POST(request: NextRequest) {
           .set({ likes: sql`GREATEST(${posts.likes} - 1, 0)` })
           .where(eq(posts.id, validated.id));
 
-        return NextResponse.json({ liked: false });
+        return NextResponse.json({ liked: false }, { headers: corsHeaders });
       } else {
         // Like: add like record and increment count
         await db.insert(postLikes).values({
@@ -59,7 +71,7 @@ export async function POST(request: NextRequest) {
           .set({ likes: sql`${posts.likes} + 1` })
           .where(eq(posts.id, validated.id));
 
-        return NextResponse.json({ liked: true });
+        return NextResponse.json({ liked: true }, { headers: corsHeaders });
       }
     } else {
       // Comment like
@@ -85,7 +97,7 @@ export async function POST(request: NextRequest) {
           .set({ likes: sql`GREATEST(${comments.likes} - 1, 0)` })
           .where(eq(comments.id, validated.id));
 
-        return NextResponse.json({ liked: false });
+        return NextResponse.json({ liked: false }, { headers: corsHeaders });
       } else {
         // Like
         await db.insert(commentLikes).values({
@@ -98,7 +110,7 @@ export async function POST(request: NextRequest) {
           .set({ likes: sql`${comments.likes} + 1` })
           .where(eq(comments.id, validated.id));
 
-        return NextResponse.json({ liked: true });
+        return NextResponse.json({ liked: true }, { headers: corsHeaders });
       }
     }
   } catch (error) {
@@ -111,7 +123,7 @@ export async function POST(request: NextRequest) {
     console.error('Error handling like:', error);
     return NextResponse.json(
       { error: 'Failed to process like' },
-      { status: 500 }
+      { status: 500, headers: corsHeaders }
     );
   }
 }
@@ -143,7 +155,7 @@ export async function GET(request: NextRequest) {
         )
         .limit(1);
 
-      return NextResponse.json({ liked: existingLike.length > 0 });
+      return NextResponse.json({ liked: existingLike.length > 0 }, { headers: corsHeaders });
     } else {
       const existingLike = await db
         .select()
@@ -156,13 +168,13 @@ export async function GET(request: NextRequest) {
         )
         .limit(1);
 
-      return NextResponse.json({ liked: existingLike.length > 0 });
+      return NextResponse.json({ liked: existingLike.length > 0 }, { headers: corsHeaders });
     }
   } catch (error) {
     console.error('Error checking like status:', error);
     return NextResponse.json(
       { error: 'Failed to check like status' },
-      { status: 500 }
+      { status: 500, headers: corsHeaders }
     );
   }
 }

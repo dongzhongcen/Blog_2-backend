@@ -3,6 +3,18 @@ import { db, comments, posts } from '@/lib/db';
 import { eq, desc } from 'drizzle-orm';
 import { z } from 'zod';
 
+// CORS headers
+const corsHeaders = {
+  'Access-Control-Allow-Origin': '*',
+  'Access-Control-Allow-Methods': 'GET, POST, PUT, PATCH, DELETE, OPTIONS',
+  'Access-Control-Allow-Headers': 'Content-Type, Authorization',
+};
+
+// Handle OPTIONS request for CORS
+export async function OPTIONS() {
+  return NextResponse.json({}, { headers: corsHeaders });
+}
+
 // GET /api/comments?postId=xxx - Get comments for a post
 export async function GET(request: NextRequest) {
   try {
@@ -30,12 +42,12 @@ export async function GET(request: NextRequest) {
       .where(eq(comments.postId, postIdNum))
       .orderBy(desc(comments.createdAt));
 
-    return NextResponse.json({ comments: allComments });
+    return NextResponse.json({ comments: allComments }, { headers: corsHeaders });
   } catch (error) {
     console.error('Error fetching comments:', error);
     return NextResponse.json(
       { error: 'Failed to fetch comments' },
-      { status: 500 }
+      { status: 500, headers: corsHeaders }
     );
   }
 }
@@ -74,7 +86,7 @@ export async function POST(request: NextRequest) {
 
     return NextResponse.json(
       { comment: newComment[0] },
-      { status: 201 }
+      { status: 201, headers: corsHeaders }
     );
   } catch (error) {
     if (error instanceof z.ZodError) {
@@ -86,7 +98,7 @@ export async function POST(request: NextRequest) {
     console.error('Error creating comment:', error);
     return NextResponse.json(
       { error: 'Failed to create comment' },
-      { status: 500 }
+      { status: 500, headers: corsHeaders }
     );
   }
 }

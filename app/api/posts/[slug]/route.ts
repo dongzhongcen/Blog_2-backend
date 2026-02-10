@@ -2,6 +2,18 @@ import { NextRequest, NextResponse } from 'next/server';
 import { db, posts } from '@/lib/db';
 import { eq, sql } from 'drizzle-orm';
 
+// CORS headers
+const corsHeaders = {
+  'Access-Control-Allow-Origin': '*',
+  'Access-Control-Allow-Methods': 'GET, POST, PUT, PATCH, DELETE, OPTIONS',
+  'Access-Control-Allow-Headers': 'Content-Type, Authorization',
+};
+
+// Handle OPTIONS request for CORS
+export async function OPTIONS() {
+  return NextResponse.json({}, { headers: corsHeaders });
+}
+
 // GET /api/posts/[slug] - Get a single post
 export async function GET(
   request: NextRequest,
@@ -15,7 +27,7 @@ export async function GET(
     if (post.length === 0) {
       return NextResponse.json(
         { error: 'Post not found' },
-        { status: 404 }
+        { status: 404, headers: corsHeaders }
       );
     }
 
@@ -31,7 +43,7 @@ export async function GET(
       views: post[0].views + 1, // Return updated view count
     };
 
-    return NextResponse.json({ post: parsedPost });
+    return NextResponse.json({ post: parsedPost }, { headers: corsHeaders });
   } catch (error) {
     console.error('Error fetching post:', error);
     return NextResponse.json(
@@ -68,7 +80,7 @@ export async function PUT(
     if (updated.length === 0) {
       return NextResponse.json(
         { error: 'Post not found' },
-        { status: 404 }
+        { status: 404, headers: corsHeaders }
       );
     }
 
@@ -78,7 +90,7 @@ export async function PUT(
       tags: JSON.parse(updated[0].tags || '[]'),
     };
 
-    return NextResponse.json({ post: responsePost });
+    return NextResponse.json({ post: responsePost }, { headers: corsHeaders });
   } catch (error) {
     console.error('Error updating post:', error);
     return NextResponse.json(
@@ -112,11 +124,11 @@ export async function DELETE(
     if (deleted.length === 0) {
       return NextResponse.json(
         { error: 'Post not found' },
-        { status: 404 }
+        { status: 404, headers: corsHeaders }
       );
     }
 
-    return NextResponse.json({ message: 'Post deleted successfully' });
+    return NextResponse.json({ message: 'Post deleted successfully' }, { headers: corsHeaders });
   } catch (error) {
     console.error('Error deleting post:', error);
     return NextResponse.json(
