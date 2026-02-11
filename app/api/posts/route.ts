@@ -65,13 +65,16 @@ export async function GET(request: NextRequest) {
       }
     }
 
-    // Parse tags from JSON string and convert types
+    // 修复：确保所有文章数据正确转换类型
     const parsedPosts = allPosts.map(post => ({
       ...post,
       id: String(post.id),
       tags: JSON.parse(post.tags || '[]'),
       publishedAt: post.publishedAt?.toISOString() || new Date().toISOString(),
       updatedAt: post.updatedAt?.toISOString(),
+      likes: Number(post.likes) || 0,
+      views: Number(post.views) || 0,
+      readTime: Number(post.readTime) || 5
     }));
 
     return NextResponse.json(

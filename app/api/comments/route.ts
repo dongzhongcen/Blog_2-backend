@@ -42,7 +42,15 @@ export async function GET(request: NextRequest) {
       .where(eq(comments.postId, postIdNum))
       .orderBy(desc(comments.createdAt));
 
-    return NextResponse.json({ comments: allComments }, { headers: corsHeaders });
+    // 修复：确保所有评论的ID和postId都转换为字符串类型
+    const commentsWithStringIds = allComments.map(comment => ({
+      ...comment,
+      id: String(comment.id),
+      postId: String(comment.postId),
+      likes: Number(comment.likes) || 0
+    }));
+
+    return NextResponse.json({ comments: commentsWithStringIds }, { headers: corsHeaders });
   } catch (error) {
     console.error('Error fetching comments:', error);
     return NextResponse.json(
@@ -84,8 +92,16 @@ export async function POST(request: NextRequest) {
       .values(validated)
       .returning();
 
+    // 修复：确保返回的评论ID转换为字符串类型
+    const commentWithStringId = {
+      ...newComment[0],
+      id: String(newComment[0].id),
+      postId: String(newComment[0].postId),
+      likes: Number(newComment[0].likes) || 0
+    };
+
     return NextResponse.json(
-      { comment: newComment[0] },
+      { comment: commentWithStringId },
       { status: 201, headers: corsHeaders }
     );
   } catch (error) {
